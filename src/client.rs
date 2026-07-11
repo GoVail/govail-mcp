@@ -3,6 +3,7 @@ use serde_json::Value;
 use std::time::{Duration, Instant};
 use tokio::fs;
 use tracing::{info, warn};
+use uuid::Uuid;
 
 use crate::config::AppConfig;
 use crate::mcp::protocol::{BusinessError, McpError, SystemError};
@@ -12,6 +13,7 @@ use crate::mcp::protocol::{BusinessError, McpError, SystemError};
 pub struct GoVailClient {
     client: Client,
     config: AppConfig,
+    db_pool: Option<sqlx::PgPool>,
 }
 
 impl GoVailClient {
@@ -29,7 +31,23 @@ impl GoVailClient {
                 Client::new()
             });
 
-        Self { client, config }
+        let db_pool = if !config.grc_database_url.is_empty() {
+            match sqlx::postgres::PgPoolOptions::new()
+                .max_connections(5)
+                .acquire_timeout(Duration::from_secs(5))
+                .connect_lazy(&config.grc_database_url)
+            {
+                Ok(pool) => Some(pool),
+                Err(e) => {
+                    warn!("Lazy GRC database connection pool 생성 실패: {e}");
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        Self { client, config, db_pool }
     }
 
     // ──────────────────────────────────────────────
@@ -228,10 +246,12 @@ impl GoVailClient {
 
         info!(url = %url, mode = %mode, "Sentinel 코드 보안 스캔 요청");
 
-        let response = self
-            .client
-            .post(&url)
-            .json(&body)
+        let mut request = self.client.post(&url).json(&body);
+        if !self.config.sentinel_api_token.is_empty() {
+            request = request.bearer_auth(&self.config.sentinel_api_token);
+        }
+
+        let response = request
             .send()
             .await
             .map_err(SystemError::Http)?;
@@ -267,6 +287,122 @@ impl GoVailClient {
         bundle_id: &str,
         bundle: &Value,
     ) -> Result<String, McpError> {
+        // 1. PostgreSQL DB 적재 시도 (db_pool이 존재할 때만)
+        if let Some(ref pool) = self.db_pool {
+            let db_insert_result = async {
+                let bundle_id_uuid = Uuid::parse_str(bundle_id)
+                    .unwrap_or_else(|_| Uuid::new_v4());
+
+                let source = bundle.get("source")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+
+                let inner_bundle = bundle.get("bundle")
+                    .unwrap_or(bundle);
+
+                let asset_type = inner_bundle.get("asset_type").and_then(|v| v.as_str());
+                let asset_name = inner_bundle.get("asset_name").and_then(|v| v.as_str());
+                
+                // validation이 없으면 빈 JSON 객체 사용
+                let default_validation = serde_json::json!({});
+                let validation = bundle.get("validation").unwrap_or(&default_validation);
+
+                let mut tx = pool.begin().await?;
+
+                // (1) evidence_bundles 테이블에 저장
+                sqlx::query(
+                    "INSERT INTO grc.evidence_bundles (id, project_id, source, asset_type, asset_name, bundle, validation) \
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)"
+                )
+                .bind(bundle_id_uuid)
+                .bind(project_id)
+                .bind(source)
+                .bind(asset_type)
+                .bind(asset_name)
+                .bind(inner_bundle)
+                .bind(validation)
+                .execute(&mut *tx)
+                .await?;
+
+                // (2) findings 테이블에 저장
+                if let Some(findings) = inner_bundle.get("findings").and_then(|v| v.as_array()) {
+                    for (index, finding) in findings.iter().enumerate() {
+                        let finding_id_uuid = Uuid::new_v4();
+                        let severity = finding.get("severity").and_then(|v| v.as_str()).unwrap_or("unknown").to_lowercase();
+                        let category = finding.get("category").and_then(|v| v.as_str()).unwrap_or("unknown").to_lowercase();
+                        let title = finding.get("title").and_then(|v| v.as_str()).unwrap_or("제목 없음");
+
+                        sqlx::query(
+                            "INSERT INTO grc.findings (id, bundle_id, project_id, severity, category, title, finding) \
+                             VALUES ($1, $2, $3, $4, $5, $6, $7)"
+                        )
+                        .bind(finding_id_uuid)
+                        .bind(bundle_id_uuid)
+                        .bind(project_id)
+                        .bind(&severity)
+                        .bind(&category)
+                        .bind(title)
+                        .bind(finding)
+                        .execute(&mut *tx)
+                        .await?;
+
+                        // (3) control_mappings 테이블에 저장 (map_single_finding 헬퍼의 매핑 로직과 동일하게 생성)
+                        let mappings = if category.contains("secret") {
+                            vec![
+                                ("NIST-CSF", "PR.DS-5", "시크릿 노출은 데이터 보호 및 유출 방지 통제와 연결됩니다.", 0.82),
+                                ("ISO27001", "A.8.12", "민감정보 유출 방지 및 DLP 통제 후보입니다.", 0.78),
+                                ("CIS", "CIS-3.3", "민감 데이터 접근 및 보관 통제와 관련됩니다.", 0.65),
+                            ]
+                        } else if category.contains("network") || category.contains("ip") {
+                            vec![
+                                ("NIST-CSF", "ID.AM-3", "내부망 주소와 서비스 노출은 자산 식별 통제와 연결됩니다.", 0.74),
+                                ("ISO27001", "A.8.20", "네트워크 보안 및 분리 통제 후보입니다.", 0.70),
+                                ("CIS", "CIS-12.2", "네트워크 인프라 보안 관리와 관련됩니다.", 0.62),
+                            ]
+                        } else if category.contains("dependency") || category.contains("cve") || category.contains("vulnerability") {
+                            vec![
+                                ("NIST-CSF", "ID.RA-1", "취약점 식별 및 위험 평가 통제와 연결됩니다.", 0.84),
+                                ("ISO27001", "A.8.8", "기술적 취약점 관리 통제 후보입니다.", 0.86),
+                                ("CIS", "CIS-7.1", "지속적인 취약점 관리와 관련됩니다.", 0.82),
+                            ]
+                        } else {
+                            vec![
+                                ("NIST-CSF", "ID.RA-5", "일반 보안 finding은 리스크 판단 및 우선순위화 통제와 연결됩니다.", 0.55),
+                                ("ISO27001", "A.5.7", "위협 인텔리전스 및 보안 이벤트 판단 후보입니다.", 0.48),
+                                ("CIS", "CIS-17.1", "보안 사고 대응 준비와 관련될 수 있습니다.", 0.42),
+                            ]
+                        };
+
+                        for (framework, control_id, rationale, confidence) in mappings {
+                            let mapping_id_uuid = Uuid::new_v4();
+                            sqlx::query(
+                                "INSERT INTO grc.control_mappings (id, finding_id, framework, control_id, rationale, confidence) \
+                                 VALUES ($1, $2, $3, $4, $5, $6)"
+                            )
+                            .bind(mapping_id_uuid)
+                            .bind(finding_id_uuid)
+                            .bind(framework)
+                            .bind(control_id)
+                            .bind(rationale)
+                            .bind(confidence as f64)
+                            .execute(&mut *tx)
+                            .await?;
+                        }
+                    }
+                }
+
+                tx.commit().await?;
+                Ok::<(), sqlx::Error>(())
+            }
+            .await;
+
+            match db_insert_result {
+                Ok(_) => info!(bundle_id = %bundle_id, "GRC DB에 evidence bundle 및 하위 데이터 적재 완료"),
+                Err(e) => warn!("GRC DB 적재 중 에러 발생 (파일 Fallback 적용): {e}"),
+            }
+        }
+
+        // 2. 로컬 파일 저장 (Fallback 및 기본 영속화)
         let safe_project_id = sanitize_path_segment(project_id);
         let safe_bundle_id = sanitize_path_segment(bundle_id);
         let dir = format!(
