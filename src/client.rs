@@ -47,7 +47,11 @@ impl GoVailClient {
             None
         };
 
-        Self { client, config, db_pool }
+        Self {
+            client,
+            config,
+            db_pool,
+        }
     }
 
     // ──────────────────────────────────────────────
@@ -251,10 +255,7 @@ impl GoVailClient {
             request = request.bearer_auth(&self.config.sentinel_api_token);
         }
 
-        let response = request
-            .send()
-            .await
-            .map_err(SystemError::Http)?;
+        let response = request.send().await.map_err(SystemError::Http)?;
 
         let status = response.status();
         let body_text = response.text().await.map_err(SystemError::Http)?;
@@ -397,7 +398,9 @@ impl GoVailClient {
             .await;
 
             match db_insert_result {
-                Ok(_) => info!(bundle_id = %bundle_id, "GRC DB에 evidence bundle 및 하위 데이터 적재 완료"),
+                Ok(_) => {
+                    info!(bundle_id = %bundle_id, "GRC DB에 evidence bundle 및 하위 데이터 적재 완료")
+                }
                 Err(e) => warn!("GRC DB 적재 중 에러 발생 (파일 Fallback 적용): {e}"),
             }
         }
