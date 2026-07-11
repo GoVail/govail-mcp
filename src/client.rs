@@ -302,7 +302,7 @@ impl GoVailClient {
 
                 let asset_type = inner_bundle.get("asset_type").and_then(|v| v.as_str());
                 let asset_name = inner_bundle.get("asset_name").and_then(|v| v.as_str());
-                
+
                 // validation이 없으면 빈 JSON 객체 사용
                 let default_validation = serde_json::json!({});
                 let validation = bundle.get("validation").unwrap_or(&default_validation);
@@ -326,7 +326,7 @@ impl GoVailClient {
 
                 // (2) findings 테이블에 저장
                 if let Some(findings) = inner_bundle.get("findings").and_then(|v| v.as_array()) {
-                    for (index, finding) in findings.iter().enumerate() {
+                    for finding in findings.iter() {
                         let finding_id_uuid = Uuid::new_v4();
                         let severity = finding.get("severity").and_then(|v| v.as_str()).unwrap_or("unknown").to_lowercase();
                         let category = finding.get("category").and_then(|v| v.as_str()).unwrap_or("unknown").to_lowercase();
