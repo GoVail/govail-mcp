@@ -1,0 +1,12 @@
+/target
+/.env
+.DS_Store
+/data
+/.agents
+/.continue
+/.cursor
+/agents/skills
+/agents/templates
+/agents/workflows
+/CLAUDE.md
+/GEMINI.md
