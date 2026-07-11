@@ -1,6 +1,6 @@
 use reqwest::Client;
 use serde_json::Value;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::fs;
 use tracing::{info, warn};
 
@@ -298,7 +298,7 @@ impl GoVailClient {
             self.config.llm_api_url.trim_end_matches('/')
         );
 
-        let system_prompt = "당신은 GRC 보안 리스크 분석가입니다. 원본 소스코드를 요구하거나 추측하지 말고, 제공된 evidence bundle 안의 근거만 사용해 거버넌스, 리스크, 컴플라이언스 관점의 요약을 작성하세요. 문서는 한국어로 작성하고 이모지는 사용하지 마세요.";
+        let system_prompt = "당신은 GRC 보안 리스크 분석가입니다. 원본 소스코드를 요구하거나 추측하지 말고, 제공된 evidence bundle 안의 근거만 사용하세요. 한국어로 8개 bullet 이하의 간결한 executive brief를 작성하고, 이모지와 사고 과정은 출력하지 마세요.";
         let user_prompt = format!(
             "언어: {language}\n\n다음 evidence bundle을 기반으로 리스크 브리프를 작성하세요.\n\n{}",
             serde_json::to_string_pretty(bundle)
@@ -311,7 +311,16 @@ impl GoVailClient {
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "temperature": 0.2
+            "temperature": 0.1,
+            "max_tokens": self.config.llm_max_tokens,
+            "chat_template_kwargs": {
+                "enable_thinking": self.config.llm_enable_thinking
+            },
+            "extra_body": {
+                "chat_template_kwargs": {
+                    "enable_thinking": self.config.llm_enable_thinking
+                }
+            }
         });
 
         let mut request = self.client.post(&url).json(&body);
@@ -321,7 +330,9 @@ impl GoVailClient {
 
         info!(url = %url, model = %self.config.llm_model, "로컬 LLM 리스크 브리프 생성 요청");
 
+        let started_at = Instant::now();
         let response = request.send().await.map_err(SystemError::Http)?;
+        let elapsed_ms = started_at.elapsed().as_millis();
         let status = response.status();
         let body_text = response.text().await.map_err(SystemError::Http)?;
 
@@ -334,6 +345,24 @@ impl GoVailClient {
 
         let parsed: Value = serde_json::from_str(&body_text)
             .map_err(|e| SystemError::Internal(format!("LLM 응답 JSON 파싱 실패: {e}")))?;
+
+        let prompt_tokens = parsed
+            .pointer("/usage/prompt_tokens")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        let completion_tokens = parsed
+            .pointer("/usage/completion_tokens")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        let total_tokens = parsed
+            .pointer("/usage/total_tokens")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+
+        info!(
+            elapsed_ms,
+            prompt_tokens, completion_tokens, total_tokens, "로컬 LLM 리스크 브리프 생성 완료"
+        );
 
         let content = parsed
             .get("choices")

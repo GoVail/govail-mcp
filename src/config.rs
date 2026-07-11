@@ -24,6 +24,12 @@ pub struct AppConfig {
     /// 리스크 브리프 생성에 사용할 모델명
     pub llm_model: String,
 
+    /// 리스크 브리프 생성 최대 토큰 수
+    pub llm_max_tokens: u32,
+
+    /// Thinking 모델의 추론 토큰 사용 여부
+    pub llm_enable_thinking: bool,
+
     /// GRC evidence 영속화를 위한 Postgres DSN
     pub grc_database_url: String,
 
@@ -68,6 +74,14 @@ impl AppConfig {
                 .unwrap_or_else(|_| "http://localhost:8080/v1".to_string()),
             llm_api_key: env::var("LLM_API_KEY").unwrap_or_else(|_| "none".to_string()),
             llm_model: env::var("LLM_MODEL").unwrap_or_else(|_| "auto".to_string()),
+            llm_max_tokens: env::var("LLM_MAX_TOKENS")
+                .ok()
+                .and_then(|v| v.parse::<u32>().ok())
+                .unwrap_or(256),
+            llm_enable_thinking: env::var("LLM_ENABLE_THINKING")
+                .ok()
+                .map(|v| matches!(v.to_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+                .unwrap_or(false),
             grc_database_url: env::var("GRC_DATABASE_URL").unwrap_or_else(|_| "".to_string()),
             grc_evidence_store_dir: env::var("GRC_EVIDENCE_STORE_DIR")
                 .unwrap_or_else(|_| "/tmp/govail-mcp/evidence".to_string()),

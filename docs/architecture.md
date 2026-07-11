@@ -93,6 +93,8 @@ flowchart TD
 | `LLM_API_URL` | OpenAI 호환 LLM API URL |
 | `LLM_API_KEY` | LLM API 키 |
 | `LLM_MODEL` | 리스크 브리프 생성 모델 |
+| `LLM_MAX_TOKENS` | 리스크 브리프 최대 생성 토큰 수 |
+| `LLM_ENABLE_THINKING` | Thinking 모델 추론 토큰 사용 여부. 기본값은 `false` |
 | `GRC_DATABASE_URL` | 초기화 및 향후 영속 저장용 Postgres DSN |
 | `GRC_EVIDENCE_HOST_DIR` | 맥미니 호스트의 evidence bundle 저장 경로 |
 | `GRC_EVIDENCE_STORE_DIR` | 컨테이너 내부 evidence bundle 저장 경로 |

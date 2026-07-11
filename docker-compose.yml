@@ -14,6 +14,8 @@ services:
       - LLM_API_URL=${LLM_API_URL:-http://<llm_api_url>/v1}
       - LLM_API_KEY=${LLM_API_KEY:-none}
       - LLM_MODEL=${LLM_MODEL:-auto}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-256}
+      - LLM_ENABLE_THINKING=${LLM_ENABLE_THINKING:-false}
       - GRC_DATABASE_URL=${GRC_DATABASE_URL:-}
       - GRC_EVIDENCE_STORE_DIR=${GRC_EVIDENCE_STORE_DIR:-/data/evidence}
       - GOVAIL_HTTP_TIMEOUT=${GOVAIL_HTTP_TIMEOUT:-90.0}
