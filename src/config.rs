@@ -30,6 +30,9 @@ pub struct AppConfig {
     /// Thinking 모델의 추론 토큰 사용 여부
     pub llm_enable_thinking: bool,
 
+    /// Sentinel API 인증에 사용할 Bearer 토큰
+    pub sentinel_api_token: String,
+
     /// GRC evidence 영속화를 위한 Postgres DSN
     pub grc_database_url: String,
 
@@ -61,6 +64,11 @@ impl AppConfig {
             .and_then(|v| v.parse::<u16>().ok())
             .unwrap_or(8096);
 
+        // Sentinel API 토큰 (SENTINEL_API_TOKEN 우선, SENTINEL_TOKEN 폴백)
+        let sentinel_api_token = env::var("SENTINEL_API_TOKEN")
+            .or_else(|_| env::var("SENTINEL_TOKEN"))
+            .unwrap_or_else(|_| "".to_string());
+
         Self {
             gateway_url: env::var("GOVAIL_GATEWAY_URL")
                 .unwrap_or_else(|_| "http://localhost:8080".to_string()),
@@ -70,6 +78,7 @@ impl AppConfig {
                 .unwrap_or_else(|_| "http://localhost:8095".to_string()),
             sentinel_url: env::var("SENTINEL_API_URL")
                 .unwrap_or_else(|_| "http://localhost:8300".to_string()),
+            sentinel_api_token,
             llm_api_url: env::var("LLM_API_URL")
                 .unwrap_or_else(|_| "http://localhost:8080/v1".to_string()),
             llm_api_key: env::var("LLM_API_KEY").unwrap_or_else(|_| "none".to_string()),

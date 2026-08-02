@@ -11,6 +11,7 @@ services:
       - GOVAIL_RUNTIME_URL=${GOVAIL_RUNTIME_URL:-http://<runtime_api_url>}
       - GOVAIL_MEMORY_URL=${GOVAIL_MEMORY_URL:-http://<memory_api_url>}
       - SENTINEL_API_URL=${SENTINEL_API_URL:-http://<sentinel_api_url>}
+      - SENTINEL_API_TOKEN=${SENTINEL_API_TOKEN:-}
       - LLM_API_URL=${LLM_API_URL:-http://<llm_api_url>/v1}
       - LLM_API_KEY=${LLM_API_KEY:-none}
       - LLM_MODEL=${LLM_MODEL:-auto}
