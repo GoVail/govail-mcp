@@ -8,6 +8,7 @@ GoVail MCP는 GoVail 플랫폼을 MCP(Model Context Protocol) 도구로 노출�
 - GoVail Runtime 비동기 작업 트리거와 상태 조회
 - Sentinel 기반 DLP 정책 검증
 - GRC evidence bundle 수신, 검증, 통제 매핑, 리스크 브리프 생성
+- **Zero-Trust Tool Sandboxing & Permission Guardrail (Phase 3)**: `PermissionLevel` 4-tier 매트릭스, 디렉토리 이스케이프(`../`) 및 위험 명령어 차단 기능 제공
 
 ## GRC Evidence 흐름
 
