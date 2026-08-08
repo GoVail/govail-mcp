@@ -1,1 +1,0 @@
-/Users/studio-server/srv/_govail-agents/repos/govail-mcp/rules/rules.md

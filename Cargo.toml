@@ -2,40 +2,21 @@
 name = "govail-mcp"
 version = "0.1.0"
 edition = "2021"
-description = "GoVail 플랫폼 전용 SSE/Stdio MCP(Model Context Protocol) 서버"
-authors = ["Antigravity AI Assistant"]
+description = "Extensible developer automation exposed through CLI and MCP"
+authors = ["GoVail"]
 license = "MIT"
 
 [dependencies]
-# 비동기 런타임
-tokio = { version = "1", features = ["full"] }
-
-# 웹 서버 및 라우팅 (SSE 구현)
-axum = { version = "0.7" }
-tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "trace"] }
-
-# HTTP 클라이언트 (GoVail API 통신용)
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
-
-# 직렬화 및 JSON 파싱
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
-# 에러 핸들링
 thiserror = "2"
-anyhow = "1"
-
-# 로깅 및 관측성
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
-
-# 유틸리티
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
-async-stream = "0.3"
-futures-core = "0.3"
-sqlx = { version = "0.8", default-features = false, features = [ "runtime-tokio", "postgres", "chrono", "uuid", "json", "tls-rustls" ] }
+sha2 = "0.10"
+hmac = "0.12"
+
+[dev-dependencies]
+tempfile = "3"
 
 [profile.release]
 opt-level = 3

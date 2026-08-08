@@ -1,1 +1,0 @@
-/Users/studio-server/srv/_govail-agents/common/rules/L1-00-bootstream.md
