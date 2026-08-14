@@ -4,36 +4,31 @@
 
 1. Read this file.
 2. Read `docs/architecture.md`.
-3. For active work, read `agents/sessions/active/<work-id>/`.
+3. Check target sub-crate specs (`crates/govail-mcp-contracts`, `crates/govail-mcp-sdk`, `crates/govail-mcp-core`).
 
-## Product boundaries
+## Core Invariants & Boundaries
 
-- `govail-mcp` is an externally consumable MCP and CLI product.
-- `developer` owns developer-facing workflow contracts and orchestration ports.
-- Standalone execution and GoVail Runtime delegation must implement the same
-  workflow contract.
-- MCP and CLI handlers must call the same application services.
-- Git, SCM, issue tracker, LLM, graph store, and trigger integrations are
-  replaceable adapters.
+- **Repository Separation**: `govail-mcp` is an independent Rust library crate repository. It is NOT the `govail` orchestration platform monorepo (`~/srv/govail`).
+- **GoVail MCP standardizes how applications expose capabilities and context; it does not own application state or application workflows.**
+- **GoVail MCP MUST NOT become an independent implementation of the MCP wire protocol when an official SDK can provide that responsibility.**
+- The application owns the data, DB schema, domain state, and domain workflows.
+- `govail-mcp` provides shared contracts, capability metadata, tool schema conventions, error standards, and server SDKs.
+- `govail-mcp` MUST NOT contain central application databases or central domain logic.
+- Reference implementations (e.g. `examples/promptia-context/`) act as **Reference Contract Examples** with mock/fixture data. Real database integrations belong to the application repositories.
 
-## Security
+## Protocol Version Pinning & Delegation
 
-- Models propose actions; deterministic policy and executors decide and act.
-- Never persist raw source or full diffs in central service state.
-- Never stage with `git add -A` or an implicit workspace-wide glob.
-- Commit and push are separate capabilities. Push requires an approval receipt
-  bound to repository, remote, commit, branch, remote head, and verification.
-- Revalidate every bound value immediately before push and fail closed on drift.
-- V1 forbids force pushes, deletion pushes, and direct pushes to protected
-  branches.
-- Never commit real credentials, private addresses, or `.env` files.
+- **Baseline**: MCP Spec `2025-11-25` (legacy `initialize` handshake protocol).
+- **Delegation Status (V1.1 CLOSED)**: Wire protocol, JSON-RPC serialization, and stdio transport are delegated to official `rmcp` Rust SDK (3.1.2).
 
-## Development
+## Security & Trust Model
 
-- Design first: update an architecture document before functional code.
-- Keep tests hermetic. Git write tests must use temporary local repositories and
-  local bare remotes; never contact or mutate a real remote.
-- Run `cargo fmt --check`, `cargo test --locked`, and `cargo build --locked`
-  before claiming code completion.
-- Production deployment and live HTTP verification occur on the designated
-  service host through Compose. Report unperformed verification explicitly.
+- Models propose plans and actions; deterministic application policy authorizes and executes.
+- Read capabilities and Action capabilities are strictly separated.
+- Action capabilities require principal, correlation ID, risk rating, and governance metadata bindings.
+
+## Development Standards
+
+- Keep Rust workspace code clean and warning-free.
+- Run `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` before completing tasks.
+- Keep tests hermetic. Reference contract examples must use isolated in-memory fixtures.

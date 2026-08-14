@@ -1,0 +1,13 @@
+[package]
+name = "govail-mcp-core"
+version = "0.1.0"
+edition = "2021"
+description = "MCP JSON-RPC protocol primitives and stdio transport for GoVail MCP"
+
+[dependencies]
+govail_mcp_contracts = { path = "../govail-mcp-contracts", package = "govail-mcp-contracts" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+thiserror.workspace = true
+rmcp = { workspace = true }

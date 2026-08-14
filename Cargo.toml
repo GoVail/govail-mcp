@@ -1,26 +1,18 @@
-[package]
-name = "govail-mcp"
-version = "0.1.0"
-edition = "2021"
-description = "Extensible developer automation exposed through CLI and MCP"
-authors = ["GoVail"]
-license = "MIT"
+[workspace]
+resolver = "2"
+members = [
+    "crates/govail-mcp-contracts",
+    "crates/govail-mcp-core",
+    "crates/govail-mcp-sdk",
+    "examples/promptia-context",
+]
 
-[dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-uuid = { version = "1", features = ["v4"] }
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.38", features = ["full"] }
+async-trait = "0.1"
+uuid = { version = "1.8", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
-sha2 = "0.10"
-hmac = "0.12"
-
-[dev-dependencies]
-tempfile = "3"
-
-[profile.release]
-opt-level = 3
-lto = "thin"
-codegen-units = 1
-strip = true
-panic = "abort"
+rmcp = { version = "3.1.2", default-features = false, features = ["server", "client", "transport-async-rw", "transport-io"] }

@@ -1,0 +1,15 @@
+[package]
+name = "promptia-context"
+version = "0.1.0"
+edition = "2021"
+description = "Promptia Read-Only Context MCP Reference Server"
+
+[dependencies]
+govail_mcp_contracts = { path = "../../crates/govail-mcp-contracts", package = "govail-mcp-contracts" }
+govail_mcp_core = { path = "../../crates/govail-mcp-core", package = "govail-mcp-core" }
+govail_mcp_sdk = { path = "../../crates/govail-mcp-sdk", package = "govail-mcp-sdk" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+rmcp = { workspace = true }

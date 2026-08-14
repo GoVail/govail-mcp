@@ -1,54 +1,73 @@
-# GoVail MCP
+# GoVail MCP — Foundation V1.1 (Official SDK Delegation)
 
-GoVail MCP is an extensible developer automation product exposed through a CLI
-and, in later slices, Model Context Protocol tools.
+> **GoVail MCP standardizes how applications expose capabilities and context; it does not own application state or application workflows.**
+> **GoVail MCP MUST NOT become an independent implementation of the MCP wire protocol when an official SDK can provide that responsibility.**
 
-The first implementation is Developer Delivery V1: an allowlisted local commit
-followed by an immutable, explicitly approved push.
+GoVail MCP is an application-owned MCP interoperability foundation providing standard Rust contracts, server SDK, protocol binding, and reference contract examples.
 
-## Current commands
+---
 
-```bash
-cargo run --bin govail -- developer inspect --repo /path/to/repository
+## 1. Repository Independence
 
-cargo run --bin govail -- developer commit \
-  --repo /path/to/repository \
-  --message "feat: add workflow" \
-  --file src/workflow.rs \
-  --file tests/workflow.rs
+- **`govail-mcp` is an independent Rust library crate workspace.** It is NOT the `govail` orchestration platform monorepo (`~/srv/govail`).
+- GoVail core orchestration platform and individual applications (Promptia, Quant, etc.) consume `govail-mcp` as an external dependency (Crate).
+- `govail-mcp` does not contain application databases, business engines, or orchestration logic.
 
-cargo run --bin govail -- developer verify \
-  --repo /path/to/repository \
-  --name tests \
-  -- cargo test --locked
+---
 
-cargo run --bin govail -- developer propose-push \
-  --repo /path/to/repository \
-  --remote origin \
-  --branch feature/delivery \
-  --verification <attestation-id>
+## 2. Protocol Baseline & Official SDK Delegation
 
-cargo run --bin govail -- developer approve \
-  --repo /path/to/repository \
-  --proposal <proposal-id> \
-  --yes
+- **Primary Compatibility Baseline**: `MCP 2025-11-25` (legacy `initialize` handshake protocol).
+- **Official SDK Delegation**: MCP Wire protocol, JSON-RPC 2.0 serialization/framing, lifecycle state machine, and stdio transport are delegated to the official Rust SDK (`rmcp 3.1.2`).
+- **Interoperability Tested**: Verified end-to-end via `rmcp::service::serve_client` <-> `GovailMcpServer` (`rmcp::service::serve_server`).
 
-cargo run --bin govail -- developer push \
-  --repo /path/to/repository \
-  --approval <approval-id>
+---
+
+## 3. Repository Layout
+
+```text
+govail-mcp/
+├── crates/
+│   ├── govail-mcp-contracts/    # Standard ContextEnvelope, Provenance, Capability metadata contracts
+│   ├── govail-mcp-sdk/          # High-level GovailMcpServer builder, ToolHandler & rmcp ServerHandler adapter
+│   └── govail-mcp-core/         # MCP schema utilities & protocol baseline types
+│
+├── examples/
+│   └── promptia-context/        # Reference Contract Example (in-memory mock fixture)
+│
+├── docs/
+│   ├── architecture.md          # Architecture invariants, topology, wire delegation & boundary rules
+│   └── contracts.md             # Standard MCP JSON contract specification
+│
+└── agents/                      # AI collaboration guides & rules
 ```
 
-Workflow state and signing material are stored beneath the target repository's
-Git metadata and are not added to its working tree.
+---
 
-## Safety defaults
+## 4. Quick Start
 
-- explicit file allowlists only; pre-staged changes are rejected
-- verification is bound to the exact commit
-- push approval is signed, expiring, and single-use
-- local HEAD, remote URL, and remote HEAD are checked again before push
-- protected branches and non-fast-forward updates are rejected
-- tests use temporary repositories and local bare remotes only
+### Build all workspace crates
 
-See [Developer Delivery V1](docs/developer-delivery-v1.md) and
-[Architecture](docs/architecture.md).
+```bash
+cargo build --workspace
+```
+
+### Run comprehensive conformance tests (G1 ~ G7)
+
+```bash
+cargo test --workspace
+```
+
+### Run Promptia Reference MCP Server (stdio mode)
+
+```bash
+cargo run --example promptia-context
+```
+
+---
+
+## 5. Milestone Status
+
+- [x] **V1.0 Foundation**: Standard contracts, envelope definitions, and boundary invariants.
+- [x] **V1.1 Official SDK Delegation**: `rmcp` delegation, G1~G7 Conformance & Interop gates 100% passed.
+- [ ] **NEXT (V1.2 / Integration V1)**: `Promptia Production MCP Integration` (Real database / storage binding in Promptia application repo).

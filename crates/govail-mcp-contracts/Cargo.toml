@@ -1,0 +1,11 @@
+[package]
+name = "govail-mcp-contracts"
+version = "0.1.0"
+edition = "2021"
+description = "Standard MCP contracts, envelope types, and capability metadata for GoVail MCP"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
