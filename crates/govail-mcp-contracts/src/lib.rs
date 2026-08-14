@@ -228,4 +228,3 @@ mod tests {
         assert!(err_internal.retryable);
     }
 }
-
