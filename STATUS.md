@@ -26,16 +26,17 @@
 [V1.1] Official SDK Delegation (rmcp)           [CLOSED] (G1~G7 Gates 100% Passed)
 [V1.2] Promptia MCP Readiness Assessment        [CLOSED] (Python/FastAPI 진단 완료)
 [V1.3] Promptia MCP Integration V1 (Consumer)   [CLOSED / PASS] (Rust Adapter 구축)
+[V1.4] SDK Ergonomics Patch & Stdio Verification[CLOSED / PASS] (Convenience factories & Release binary)
 ================================================================================
 ```
 
 ### 세부 완료 내역:
 1. **`govail-mcp` 레포지토리 (`~/srv/govail-mcp`)**:
-   - `crates/govail-mcp-contracts`: 공유 계약 정의 완료
-   - `crates/govail-mcp-sdk`: `GovailMcpServer` 빌더 및 `rmcp ServerHandler` 어댑터 구현 완료
+   - `crates/govail-mcp-contracts`: 공유 계약 정의 및 `ToolError` 편의 팩토리(`unauthorized`, `forbidden`), `ErrorCode::Forbidden` 추가 완료
+   - `crates/govail-mcp-sdk`: `GovailMcpServer` 빌더, `rmcp ServerHandler` 어댑터 및 `async_trait` / 공유 컨트랙트 re-export 추가 완료
    - `crates/govail-mcp-core`: 프로토콜 타입 및 스키마 유틸리티 완료
    - `examples/promptia-context`: 참조 픽스처 기반 Conformance Gate (G1~G7) 100% PASS
-   - Git 커밋 완료 (`b7405bc`)
+   - `main` 브랜치 병합 및 원격 푸시 완료 (`6ff95e5`)
 2. **`promptia` 레포지토리 (`~/srv/promptia`)**:
    - **Python API (`apps/api`)**:
      - `character_state()` Use-case 및 `CharacterStateResponse` DTO 구현
@@ -46,22 +47,24 @@
      - Direct DB Access = 0 (PostgreSQL 직접 쿼리 없음, REST API 소비)
      - Business Logic in Adapter = 0 (순수 Protocol Adapter & ContextEnvelope 래핑)
      - `get_story_context`, `get_character_state` 2개 Read 도구 등록
-     - 7대 Conformance & rmcp Interop 테스트 100% PASS (`cargo test` 7/7 PASS, `clippy -D warnings` 통과)
-   - **SDK Ergonomics 평가**: Server Bootstrap 8줄, Tool 등록 4줄, Envelope 래핑 1줄로 사용성 우수(GOOD) 판정.
+     - 7대 Conformance & rmcp Interop 테스트 100% PASS (`cargo test` 7/7 PASS, `clippy` 통과)
+     - 릴리즈 바이너리 빌드 (`cargo build --release`) 및 Stdio JSON-RPC 핸드셰이크 실환경 E2E 검증 완료
+     - `main` 브랜치 푸시 완료 (`a601e05`)
+3. **`govail` 메인 모노레포 (`~/srv/govail`)**:
+   - 17개 Contract Schema SSOT 유효성 검사 100% Valid 통과
+   - Claim-grounding 및 SMS regression invariant 통과
+   - Boundary E2E 검증 통과
 
 ---
 
 ## 3. 남은 작업 및 로드맵 (어떤 게 남았니?)
 
-1. **GoVail 메인 모노레포(`~/srv/govail`) Track 재개 (최우선)**:
-   - Evidence Hardening, Audit Trail & Live Regression 테스트 세션 진행.
-2. **OpenCode / GoVail MCP Config 실사용 연동**:
-   - 개발 환경의 AI 에이전트(OpenCode, GoVail) 설정에 `promptia-mcp` Stdio 바이너리를 등록하여 실제 소설 생성/검토 파이프라인에서 컨텍스트 조회 실사용 루프 검증.
-3. **`govail-mcp` V1.2 Minor Ergonomics Patch (권장)**:
-   - `async-trait` SDK re-export 제공
-   - `ToolError::unauthorized(...)`, `ToolError::forbidden(...)` 편의 팩토리 함수 추가
-4. **Modern Protocol (MCP 2026-07-28 per-request metadata) Migration (추후)**:
-   - 에코시스템 요구사항에 맞춰 필요한 시점에 진행.
+1. **에이전트 실환경 설정 등록 (OpenCode / GoVail MCP Config)**:
+   - 개발 환경 AI 에이전트 설정(예: `mcp_servers` JSON)에 `promptia-mcp` Stdio 바이너리(`/Users/yooncy/srv/promptia/services/mcp/promptia-mcp/target/release/promptia-mcp`)를 등록하여 실제 소설 생성/검토 세션에서 도구 호출 실사용.
+2. **GoVail 메인 모노레포(`~/srv/govail`) Live Regression 및 기능 고도화**:
+   - Live Credential Profile E2E(Gateway URL/Admin Key 환경) 세션 실행.
+3. **Modern Protocol (MCP 2026-07-28 per-request metadata) Migration (추후 필요 시)**:
+   - 생태계 요구사항에 맞춰 필요한 시점에 진행.
 
 ---
 
