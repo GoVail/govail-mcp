@@ -1,6 +1,9 @@
-use async_trait::async_trait;
-use govail_mcp_contracts::ToolError;
-use govail_mcp_core::protocol::{
+pub use async_trait::async_trait;
+pub use govail_mcp_contracts::{
+    CapabilityMetadata, CapabilityType, ContextEnvelope, ErrorCode, Freshness, Provenance,
+    ResourceIdentity, RiskLevel, ToolError,
+};
+pub use govail_mcp_core::protocol::{
     JsonRpcError, JsonRpcRequest, JsonRpcResponse, ListToolsResult, ToolDefinition,
 };
 use std::collections::HashMap;

@@ -140,6 +140,8 @@ pub enum ErrorCode {
     InvalidArguments,
     #[error("Unauthorized")]
     Unauthorized,
+    #[error("Forbidden")]
+    Forbidden,
     #[error("Internal application error")]
     InternalError,
 }
@@ -172,6 +174,24 @@ impl ToolError {
         }
     }
 
+    pub fn unauthorized(msg: impl Into<String>) -> Self {
+        Self {
+            code: ErrorCode::Unauthorized,
+            message: msg.into(),
+            details: None,
+            retryable: false,
+        }
+    }
+
+    pub fn forbidden(msg: impl Into<String>) -> Self {
+        Self {
+            code: ErrorCode::Forbidden,
+            message: msg.into(),
+            details: None,
+            retryable: false,
+        }
+    }
+
     pub fn internal(msg: impl Into<String>) -> Self {
         Self {
             code: ErrorCode::InternalError,
@@ -181,3 +201,31 @@ impl ToolError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tool_error_convenience_factories() {
+        let err_not_found = ToolError::not_found("not found");
+        assert_eq!(err_not_found.code, ErrorCode::ResourceNotFound);
+        assert!(!err_not_found.retryable);
+
+        let err_unauthorized = ToolError::unauthorized("unauthorized");
+        assert_eq!(err_unauthorized.code, ErrorCode::Unauthorized);
+        assert!(!err_unauthorized.retryable);
+
+        let err_forbidden = ToolError::forbidden("forbidden");
+        assert_eq!(err_forbidden.code, ErrorCode::Forbidden);
+        assert!(!err_forbidden.retryable);
+
+        let err_invalid = ToolError::invalid_args("bad arg");
+        assert_eq!(err_invalid.code, ErrorCode::InvalidArguments);
+
+        let err_internal = ToolError::internal("crash");
+        assert_eq!(err_internal.code, ErrorCode::InternalError);
+        assert!(err_internal.retryable);
+    }
+}
+
